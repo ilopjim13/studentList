@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.modifier.modifierLocalMapOf
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -22,7 +23,7 @@ import java.io.File
 fun MainScreen() {
     val fichero = GestorFichero()
     val ficheroStudiantes = File("students.txt")
-    val students = remember { fichero.leer(ficheroStudiantes).toMutableList() }
+    val students = remember { fichero.leer(ficheroStudiantes).toMutableStateList() }
     val focusRequester = remember { FocusRequester() }
     var texto by remember { mutableStateOf("") }
     Surface(
@@ -41,7 +42,7 @@ fun MainScreen() {
             }
         }) {
             focusRequester.requestFocus()
-            if (texto != "") students.add(texto)
+            if (texto.isNotBlank()) students.add(texto)
             texto = ""
         }
     }
@@ -52,6 +53,7 @@ fun MainScreen() {
 @Preview
 fun StudentList(students: List<String>,texto:String ,focusRequester: FocusRequester, onClearAll: () -> Unit, onValueChange: (String) -> Unit, onSaveChange: () -> Unit,  onButtonClick: () -> Unit) {
 
+    val selectedIndex by remember { mutableStateOf(0)}
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -75,6 +77,21 @@ fun StudentList(students: List<String>,texto:String ,focusRequester: FocusReques
                         label = {Text("Usuario")},
                         placeholder = { Text("Introduce el usuario...")},
                         modifier = Modifier.focusRequester(focusRequester)
+                            .onKeyEvent { event ->
+                                if (event.type == KeyEventType.KeyUp) {
+                                    when(event.key) {
+                                        Key.DirectionUp -> true
+                                        Key.DirectionDown -> true
+                                        else -> false
+                                    }
+                                } else false
+                            }
+                            .onKeyEvent { event ->
+                                if (event.key == Key.Enter) {
+                                    onButtonClick()
+                                    true
+                                } else false
+                            }
                     )
 
                     Button(onClick = onButtonClick) {
@@ -87,11 +104,31 @@ fun StudentList(students: List<String>,texto:String ,focusRequester: FocusReques
                     Text("Students ${students.size}")
                     LazyColumn(
                         userScrollEnabled = true,
-                        horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.fillMaxHeight(0.7f)
                             .width(220.dp)
                             .border(2.dp, Color.Black)
                             .background(Color.White)
+                            .onKeyEvent { event ->
+                                if (event.type == KeyEventType.KeyUp) {
+                                    when (event.key) {
+                                        Key.DirectionUp -> {
+                                            if (selectedIndex > 0) {
+                                                onStudentSelected(selectedIndex - 1)
+                                                true
+                                            } else false
+                                        }
+                                        Key.DirectionDown -> {
+                                            if (selectedIndex < studentsState.size - 1) {
+                                                onStudentSelected(selectedIndex + 1)
+                                                true
+                                            } else false
+                                        }
+                                        else -> false
+                                    }
+                                } else {
+                                    false//Solo manejar cuando la tecla se haya levantado de la presión
+                                }
+                            }
                     ) {
 
                         items(students) { message ->
@@ -130,7 +167,7 @@ fun StudentText(name: String) {
 
 @Composable
 fun MessageRow(message: String) {
-    Text(text = message)
+    Text(text = message, fontSize = 22.sp, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp, top = 10.dp))
 }
 
 fun main() = application {
