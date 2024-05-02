@@ -68,7 +68,7 @@ fun MainScreen() {
 
 @Composable
 @Preview
-fun StudentList(students: List<String>, showDialog:Boolean, keyPressedState:  MutableState<Boolean>, interactionSource: MutableInteractionSource, stateVertical:ScrollState ,newStudent:String ,focusRequester: FocusRequester, onClearAll: () -> Unit, onValueChange: (String) -> Unit, onSaveChange: () -> Unit,onShowDialog: () -> Unit,  onButtonClick: () -> Unit) {
+fun StudentList(students: MutableList<String>, showDialog:Boolean, keyPressedState:  MutableState<Boolean>, interactionSource: MutableInteractionSource, stateVertical:ScrollState ,newStudent:String ,focusRequester: FocusRequester, onClearAll: () -> Unit, onValueChange: (String) -> Unit, onSaveChange: () -> Unit,onShowDialog: () -> Unit,  onButtonClick: () -> Unit) {
     val state = rememberLazyListState()
     var selectedIndex by remember { mutableStateOf(0)}
     Column(
@@ -132,7 +132,7 @@ fun StudentList(students: List<String>, showDialog:Boolean, keyPressedState:  Mu
                         ) {
 
                             items(students) { message ->
-                                MessageRow(message)
+                                MessageRow(message, students)
                             }
 
 
@@ -233,18 +233,17 @@ fun Toast(message: String, onDismiss: () -> Unit) {
 }
 
 @Composable
-fun MessageRow(message: String) {
-    var visibilidad by remember { mutableStateOf(false) }
+fun MessageRow(message: String, students: MutableList<String>) {
+
     Spacer(modifier = Modifier.height(10.dp))
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween ) {
         Text(text = message, fontSize = 22.sp, modifier = Modifier.padding(start = 15.dp))
         Box(
             contentAlignment = Alignment.CenterEnd,
         ) {
-            IconToggleButton(
-                checked = visibilidad,
+            IconButton(
                 modifier = Modifier.padding(end = 10.dp),
-                onCheckedChange = {visibilidad = it}
+                onClick = { students.remove(message) }
             ) {
                 Icon(
                     imageVector = Icons.Default.DeleteOutline,
