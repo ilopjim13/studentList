@@ -14,7 +14,13 @@ class GestorFichero :IGestorFichero {
         return fichero.readLines()
     }
 
-    override fun borrarStudents(fichero: File) {
-        fichero.writeText("")
+    override fun borrarStudents(fichero: File):Boolean {
+        return try {
+            fichero.writeText("")
+            true
+        } catch (e:Exception) {
+            false
+        }
+
     }
 }

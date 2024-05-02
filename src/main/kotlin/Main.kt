@@ -4,6 +4,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.*
@@ -40,27 +41,51 @@ fun MainScreen() {
     val keyPressedState = remember { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }
     val interactionSource = remember { MutableInteractionSource() }
+    val state = rememberLazyListState()
 
     Surface(
         color = Color.LightGray,
         modifier = Modifier.fillMaxSize()
     ) {
-        StudentList(students = students, showDialog = showDialog, keyPressedState, interactionSource, stateVertical, newStudent,focusRequester,
+        StudentList(students = students,
+            state,
+            showDialog = showDialog,
+            keyPressedState,
+            interactionSource,
+            stateVertical,
+            newStudent,
+            focusRequester,
             onClearAll = {
-             focusRequester.requestFocus()
-             students.clear()
-        }, onValueChange = {
-            newStudent = it
-        }, onSaveChange = {
-            fichero.borrarStudents(ficheroStudiantes)
-            students.forEach { fichero.escribir(ficheroStudiantes, "$it\n") }
-            showDialog = true
-        }, onShowDialog = {
-            showDialog = false })
+                focusRequester.requestFocus()
+                students.clear()
+            },
+            onValueChange = {
+                newStudent = it
+            },
+            onSaveChange = {
+                fichero.borrarStudents(ficheroStudiantes)
+                students.forEach { fichero.escribir(ficheroStudiantes, "$it\n") }
+                showDialog = true
+            })
         {
             focusRequester.requestFocus()
             if (newStudent.isNotBlank()) students.add(newStudent)
             newStudent = ""
+        }
+
+
+        if (showDialog) {
+            Toast("Changes Saved") {
+                showDialog = false
+                focusRequester.requestFocus()
+            }
+        }
+
+        LaunchedEffect(showDialog) {
+            if (showDialog) {
+                delay(2000)
+                showDialog = false
+            }
         }
     }
 }
@@ -68,9 +93,22 @@ fun MainScreen() {
 
 @Composable
 @Preview
-fun StudentList(students: MutableList<String>, showDialog:Boolean, keyPressedState:  MutableState<Boolean>, interactionSource: MutableInteractionSource, stateVertical:ScrollState ,newStudent:String ,focusRequester: FocusRequester, onClearAll: () -> Unit, onValueChange: (String) -> Unit, onSaveChange: () -> Unit,onShowDialog: () -> Unit,  onButtonClick: () -> Unit) {
-    val state = rememberLazyListState()
-    var selectedIndex by remember { mutableStateOf(0)}
+fun StudentList(
+    students: MutableList<String>,
+    state: LazyListState,
+    showDialog: Boolean,
+    keyPressedState: MutableState<Boolean>,
+    interactionSource: MutableInteractionSource,
+    stateVertical: ScrollState,
+    newStudent: String,
+    focusRequester: FocusRequester,
+    onClearAll: () -> Unit,
+    onValueChange: (String) -> Unit,
+    onSaveChange: () -> Unit,
+    onButtonClick: () -> Unit
+) {
+
+
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -85,8 +123,10 @@ fun StudentList(students: MutableList<String>, showDialog:Boolean, keyPressedSta
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxHeight(0.8f).fillMaxSize()
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(15.dp, alignment = Alignment.CenterVertically),
-                    horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(15.dp, alignment = Alignment.CenterVertically),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
 
                     NuevosEstuiandtes(newStudent, onValueChange, focusRequester, onButtonClick)
 
@@ -97,46 +137,13 @@ fun StudentList(students: MutableList<String>, showDialog:Boolean, keyPressedSta
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text("Students ${students.size}")
-                    Box (
+                    Box(
                         contentAlignment = Alignment.Center,
-                        modifier = Modifier.width(220.dp).fillMaxHeight(0.7f)
+                        modifier = Modifier.fillMaxWidth(0.5f).fillMaxHeight(0.7f)
                     ) {
 
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .border(2.dp, Color.Black)
-                                .background(Color.White)
-                                .onKeyEvent { event ->
-                                    if (event.type == KeyEventType.KeyUp) {
-                                        when (event.key) {
-                                            Key.DirectionUp -> {
-                                                if (selectedIndex > 0) {
-                                                    selectedIndex--
-                                                    true
-                                                } else false
-                                            }
-                                            Key.DirectionDown -> {
-                                                if (selectedIndex < students.size - 1) {
-                                                    selectedIndex++
-                                                    true
-                                                } else false
-                                            }
-                                            else -> false
-                                        }
-                                    } else {
-                                        false//Solo manejar cuando la tecla se haya levantado de la presión
-                                    }
-                                },
-                            state
-                        ) {
+                        ListaEstudiantes(students, state)
 
-                            items(students) { message ->
-                                MessageRow(message, students)
-                            }
-
-
-                        }
                         VerticalScrollbar(
                             modifier = Modifier
                                 .align(Alignment.CenterEnd)
@@ -153,21 +160,62 @@ fun StudentList(students: MutableList<String>, showDialog:Boolean, keyPressedSta
                 Boton("Save Changes", onSaveChange, keyPressedState, interactionSource)
             }
 
-            if (showDialog) Toast("Changes Saved", onShowDialog)
-
         }
     }
 }
 
+@Composable
+fun ListaEstudiantes(students: MutableList<String>, state: LazyListState) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .border(2.dp, Color.Black)
+            .background(Color.White),
+        //.onKeyEvent { event ->
+        //    if (event.type == KeyEventType.KeyUp) {
+        //        when (event.key) {
+        //            Key.DirectionUp -> {
+        //                if (selectedIndex > 0) {
+        //                    onSelectedIndex(selectedIndex - 1)
+        //                    true
+        //                } else false
+        //            }
+        //            Key.DirectionDown -> {
+        //                if (selectedIndex < students.size - 1) {
+        //                    onSelectedIndex(selectedIndex + 1)
+        //                    true
+        //                } else false
+        //            }
+        //            else -> false
+        //        }
+        //    } else {
+        //        false//Solo manejar cuando la tecla se haya levantado de la presión
+        //    }
+        //},
+        state
+    ) {
+
+        items(students) { message ->
+            MessageRow(message, students)
+        }
+
+
+    }
+}
 
 @Composable
-fun NuevosEstuiandtes(newStudent: String, onValueChange: (String) -> Unit, focusRequester: FocusRequester, onButtonClick: () -> Unit) {
+fun NuevosEstuiandtes(
+    newStudent: String,
+    onValueChange: (String) -> Unit,
+    focusRequester: FocusRequester,
+    onButtonClick: () -> Unit
+) {
     OutlinedTextField(
         value = newStudent,
         onValueChange = onValueChange,
-        label = {Text("New student")},
+        label = { Text("New student") },
         singleLine = true,
-        placeholder = { Text("Enter the new student...")},
+        placeholder = { Text("Enter the new student...") },
         modifier = Modifier.focusRequester(focusRequester)
             .onKeyEvent { event ->
                 if (event.key == Key.Enter) {
@@ -180,7 +228,12 @@ fun NuevosEstuiandtes(newStudent: String, onValueChange: (String) -> Unit, focus
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun Boton(texto: String, onClick: () -> Unit, keyPressedState:  MutableState<Boolean>, interactionSource: MutableInteractionSource) {
+fun Boton(
+    texto: String,
+    onClick: () -> Unit,
+    keyPressedState: MutableState<Boolean>,
+    interactionSource: MutableInteractionSource
+) {
 
     Button(
         onClick = onClick,
@@ -213,7 +266,7 @@ fun Boton(texto: String, onClick: () -> Unit, keyPressedState:  MutableState<Boo
 @Composable
 fun Toast(message: String, onDismiss: () -> Unit) {
     Dialog(
-        //icon = painterResource("info_icon.png"),
+        icon = painterResource("info_icon.png"),
         title = "Atención",
         resizable = false,
         onCloseRequest = onDismiss
@@ -225,18 +278,12 @@ fun Toast(message: String, onDismiss: () -> Unit) {
             Text(message)
         }
     }
-    // Cierra el Toast después de 2 segundos
-    LaunchedEffect(Unit) {
-        delay(1000)
-        onDismiss()
-    }
 }
 
 @Composable
 fun MessageRow(message: String, students: MutableList<String>) {
-
     Spacer(modifier = Modifier.height(10.dp))
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween ) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(text = message, fontSize = 22.sp, modifier = Modifier.padding(start = 15.dp))
         Box(
             contentAlignment = Alignment.CenterEnd,
