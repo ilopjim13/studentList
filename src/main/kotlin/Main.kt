@@ -1,11 +1,9 @@
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
@@ -16,18 +14,19 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
-import androidx.compose.ui.modifier.modifierLocalMapOf
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.Window
-import androidx.compose.ui.window.application
+import androidx.compose.ui.window.*
 import kotlinx.coroutines.delay
+import java.awt.Toolkit
 import java.io.File
 
 @Composable
@@ -107,7 +106,7 @@ fun StudentList(
     onSaveChange: () -> Unit,
     onButtonClick: () -> Unit
 ) {
-
+    val (selectedIndex, setSelectedIndex) = remember { mutableStateOf(-1) }
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -142,7 +141,7 @@ fun StudentList(
                         modifier = Modifier.fillMaxWidth(0.5f).fillMaxHeight(0.7f)
                     ) {
 
-                        ListaEstudiantes(students, state)
+                        ListaEstudiantes(students, state, focusRequester, selectedIndex) { index -> setSelectedIndex(index)}
 
                         VerticalScrollbar(
                             modifier = Modifier
@@ -165,38 +164,42 @@ fun StudentList(
 }
 
 @Composable
-fun ListaEstudiantes(students: MutableList<String>, state: LazyListState) {
+fun ListaEstudiantes(students: MutableList<String>, state: LazyListState, focusRequester: FocusRequester, selectedIndex: Int, onStudenSelected: (Int) -> Unit) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .border(2.dp, Color.Black)
-            .background(Color.White),
-        //.onKeyEvent { event ->
-        //    if (event.type == KeyEventType.KeyUp) {
-        //        when (event.key) {
-        //            Key.DirectionUp -> {
-        //                if (selectedIndex > 0) {
-        //                    onSelectedIndex(selectedIndex - 1)
-        //                    true
-        //                } else false
-        //            }
-        //            Key.DirectionDown -> {
-        //                if (selectedIndex < students.size - 1) {
-        //                    onSelectedIndex(selectedIndex + 1)
-        //                    true
-        //                } else false
-        //            }
-        //            else -> false
-        //        }
-        //    } else {
-        //        false//Solo manejar cuando la tecla se haya levantado de la presión
-        //    }
-        //},
+            .background(Color.White)
+            .focusable()
+            .onFocusChanged { focusState ->
+                if (focusState.isFocused && selectedIndex >= 0) onStudenSelected(selectedIndex)
+            }
+            .onKeyEvent { event ->
+                if (event.type == KeyEventType.KeyUp) {
+                    when (event.key) {
+                        Key.DirectionUp -> {
+                            if (selectedIndex > 0) {
+                                onStudenSelected(selectedIndex - 1)
+                                true
+                            } else false
+                        }
+                        Key.DirectionDown -> {
+                            if (selectedIndex < students.size - 1) {
+                                onStudenSelected(selectedIndex + 1)
+                                true
+                            } else false
+                        }
+                        else -> false
+                    }
+                } else {
+                    false
+                }
+            },
         state
     ) {
 
-        items(students) { message ->
-            MessageRow(message, students)
+        items(students.size) { index ->
+            MessageRow(index, students, selectedIndex, onStudenSelected)
         }
 
 
@@ -281,16 +284,27 @@ fun Toast(message: String, onDismiss: () -> Unit) {
 }
 
 @Composable
-fun MessageRow(message: String, students: MutableList<String>) {
+fun MessageRow(index: Int, students: MutableList<String>, selectedIndex: Int, onStudenSelected: (Int) -> Unit) {
     Spacer(modifier = Modifier.height(10.dp))
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(text = message, fontSize = 22.sp, modifier = Modifier.padding(start = 15.dp))
+    Row(
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {onStudenSelected(index)}
+            .background(if (index == selectedIndex) Color(0xFF75EEFF) else Color.White)
+    ) {
+
+        Text(text = students[index],
+            fontSize = 22.sp,
+            modifier = Modifier.padding(start = 15.dp)
+        )
+
         Box(
             contentAlignment = Alignment.CenterEnd,
         ) {
             IconButton(
                 modifier = Modifier.padding(end = 10.dp),
-                onClick = { students.remove(message) }
+                onClick = { students.removeAt(index) }
             ) {
                 Icon(
                     imageVector = Icons.Default.DeleteOutline,
@@ -304,8 +318,31 @@ fun MessageRow(message: String, students: MutableList<String>) {
 
 }
 
+@Composable
+fun GetWindowState(
+    windowWidth: Dp,
+    windowHeight: Dp,
+): WindowState {
+    val screenSize = Toolkit.getDefaultToolkit().screenSize
+    val screenWidth = screenSize.width
+    val screenHeight = screenSize.height
+
+    val positionX = (screenWidth / 2 - windowWidth.value.toInt() / 2)
+    val positionY = (screenHeight / 2 - windowHeight.value.toInt() / 2)
+
+    return rememberWindowState(
+        size = DpSize(windowWidth, windowHeight),
+        position = WindowPosition(positionX.dp, positionY.dp)
+    )
+}
+
+
 fun main() = application {
-    Window(onCloseRequest = ::exitApplication) {
+    Window(
+        onCloseRequest = ::exitApplication,
+        resizable = false,
+        state = GetWindowState(800.dp, 800.dp)
+        ) {
         MainScreen()
     }
 }
