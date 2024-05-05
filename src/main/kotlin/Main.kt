@@ -30,15 +30,8 @@ import java.awt.Toolkit
 import java.io.File
 
 @Composable
-fun MainScreen() {
-    val fichero = GestorFichero()
-    val ficheroStudiantes = File("students.txt")
-    val students = remember { fichero.leer(ficheroStudiantes).toMutableStateList() }
+fun MainScreen(viewModelStudent: IViewModelStudent) {
     val focusRequester = remember { FocusRequester() }
-    val stateVertical = rememberScrollState(0)
-    var newStudent by remember { mutableStateOf("") }
-    val keyPressedState = remember { mutableStateOf(false) }
-    var showDialog by remember { mutableStateOf(false) }
     val interactionSource = remember { MutableInteractionSource() }
     val state = rememberLazyListState()
 
@@ -46,44 +39,40 @@ fun MainScreen() {
         color = Color.LightGray,
         modifier = Modifier.fillMaxSize()
     ) {
-        StudentList(students = students,
-            state,
-            showDialog = showDialog,
-            keyPressedState,
-            interactionSource,
-            stateVertical,
-            newStudent,
-            focusRequester,
+        StudentList(
+            viewModelStudent = viewModelStudent,
+            state = state,
+            interactionSource =  interactionSource,
+            focusRequester = focusRequester,
             onClearAll = {
                 focusRequester.requestFocus()
-                students.clear()
+                viewModelStudent.clearStundents()
             },
             onValueChange = {
-                newStudent = it
+                viewModelStudent.valueChange(it)
             },
             onSaveChange = {
-                fichero.borrarStudents(ficheroStudiantes)
-                students.forEach { fichero.escribir(ficheroStudiantes, "$it\n") }
-                showDialog = true
-            })
-        {
-            focusRequester.requestFocus()
-            if (newStudent.isNotBlank()) students.add(newStudent)
-            newStudent = ""
-        }
+                viewModelStudent.saveChanges()
+            },
+            onAddStudent = {
+                focusRequester.requestFocus()
+                viewModelStudent.addStudents()
+            }
+        )
 
 
-        if (showDialog) {
+
+        if (viewModelStudent.showDialog.value) {
             Toast("Changes Saved") {
-                showDialog = false
+                viewModelStudent.setShowDialog(true)
                 focusRequester.requestFocus()
             }
         }
 
-        LaunchedEffect(showDialog) {
-            if (showDialog) {
+        LaunchedEffect(viewModelStudent.showDialog.value) {
+            if (viewModelStudent.showDialog.value) {
                 delay(2000)
-                showDialog = false
+                viewModelStudent.setShowDialog(false)
             }
         }
     }
@@ -93,20 +82,15 @@ fun MainScreen() {
 @Composable
 @Preview
 fun StudentList(
-    students: MutableList<String>,
+    viewModelStudent: IViewModelStudent,
     state: LazyListState,
-    showDialog: Boolean,
-    keyPressedState: MutableState<Boolean>,
     interactionSource: MutableInteractionSource,
-    stateVertical: ScrollState,
-    newStudent: String,
     focusRequester: FocusRequester,
     onClearAll: () -> Unit,
     onValueChange: (String) -> Unit,
     onSaveChange: () -> Unit,
-    onButtonClick: () -> Unit
+    onAddStudent: () -> Unit
 ) {
-    val (selectedIndex, setSelectedIndex) = remember { mutableStateOf(-1) }
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -127,21 +111,21 @@ fun StudentList(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
 
-                    NuevosEstuiandtes(newStudent, onValueChange, focusRequester, onButtonClick)
+                    NuevosEstuiandtes(viewModelStudent, focusRequester,onValueChange, onAddStudent)
 
-                    Boton("Add new student", onButtonClick, keyPressedState, interactionSource)
+                    Boton("Add new student", viewModelStudent, interactionSource, onAddStudent)
 
                 }
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Students ${students.size}")
+                    Text("Students ${viewModelStudent.students.size}")
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier.fillMaxWidth(0.5f).fillMaxHeight(0.7f)
                     ) {
 
-                        ListaEstudiantes(students, state, focusRequester, selectedIndex) { index -> setSelectedIndex(index)}
+                        ListaEstudiantes(viewModelStudent, state)
 
                         VerticalScrollbar(
                             modifier = Modifier
@@ -151,12 +135,12 @@ fun StudentList(
                         )
                     }
 
-                    Boton("Clear All", onClearAll, keyPressedState, interactionSource)
+                    Boton("Clear All", viewModelStudent, interactionSource, onClearAll)
 
                 }
             }
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxHeight(1f)) {
-                Boton("Save Changes", onSaveChange, keyPressedState, interactionSource)
+                Boton("Save Changes", viewModelStudent, interactionSource, onSaveChange)
             }
 
         }
@@ -164,7 +148,10 @@ fun StudentList(
 }
 
 @Composable
-fun ListaEstudiantes(students: MutableList<String>, state: LazyListState, focusRequester: FocusRequester, selectedIndex: Int, onStudenSelected: (Int) -> Unit) {
+fun ListaEstudiantes(
+    viewModelStudent: IViewModelStudent,
+    state: LazyListState
+) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -172,20 +159,20 @@ fun ListaEstudiantes(students: MutableList<String>, state: LazyListState, focusR
             .background(Color.White)
             .focusable()
             .onFocusChanged { focusState ->
-                if (focusState.isFocused && selectedIndex >= 0) onStudenSelected(selectedIndex)
+                if (focusState.isFocused && viewModelStudent.selectedIndex.value >= 0) viewModelStudent.setSelectedIndex((viewModelStudent.selectedIndex.value))
             }
             .onKeyEvent { event ->
                 if (event.type == KeyEventType.KeyUp) {
                     when (event.key) {
                         Key.DirectionUp -> {
-                            if (selectedIndex > 0) {
-                                onStudenSelected(selectedIndex - 1)
+                            if (viewModelStudent.selectedIndex.value > 0) {
+                                viewModelStudent.setSelectedIndex((viewModelStudent.selectedIndex.value - 1))
                                 true
                             } else false
                         }
                         Key.DirectionDown -> {
-                            if (selectedIndex < students.size - 1) {
-                                onStudenSelected(selectedIndex + 1)
+                            if (viewModelStudent.selectedIndex.value < viewModelStudent.students.size - 1) {
+                                viewModelStudent.setSelectedIndex((viewModelStudent.selectedIndex.value) + 1)
                                 true
                             } else false
                         }
@@ -198,8 +185,8 @@ fun ListaEstudiantes(students: MutableList<String>, state: LazyListState, focusR
         state
     ) {
 
-        items(students.size) { index ->
-            MessageRow(index, students, selectedIndex, onStudenSelected)
+        items(viewModelStudent.students.size) { index ->
+            MessageRow(index, viewModelStudent)
         }
 
 
@@ -208,13 +195,13 @@ fun ListaEstudiantes(students: MutableList<String>, state: LazyListState, focusR
 
 @Composable
 fun NuevosEstuiandtes(
-    newStudent: String,
-    onValueChange: (String) -> Unit,
+    viewModelStudent: IViewModelStudent,
     focusRequester: FocusRequester,
+    onValueChange: (String) -> Unit,
     onButtonClick: () -> Unit
 ) {
     OutlinedTextField(
-        value = newStudent,
+        value = viewModelStudent.newStudent.value,
         onValueChange = onValueChange,
         label = { Text("New student") },
         singleLine = true,
@@ -233,9 +220,9 @@ fun NuevosEstuiandtes(
 @Composable
 fun Boton(
     texto: String,
-    onClick: () -> Unit,
-    keyPressedState: MutableState<Boolean>,
-    interactionSource: MutableInteractionSource
+    viewModelStudent: IViewModelStudent,
+    interactionSource: MutableInteractionSource,
+    onClick: () -> Unit
 ) {
 
     Button(
@@ -248,11 +235,11 @@ fun Boton(
                 ) {
                     when (it.type) {
                         KeyEventType.KeyDown -> {
-                            keyPressedState.value = true
+                            viewModelStudent.setKeyPressedState(true)
                         }
 
                         KeyEventType.KeyUp -> {
-                            keyPressedState.value = false
+                            viewModelStudent.setKeyPressedState(false)
                             onClick.invoke()
                         }
                     }
@@ -284,17 +271,20 @@ fun Toast(message: String, onDismiss: () -> Unit) {
 }
 
 @Composable
-fun MessageRow(index: Int, students: MutableList<String>, selectedIndex: Int, onStudenSelected: (Int) -> Unit) {
+fun MessageRow(
+    index: Int,
+    viewModelStudent: IViewModelStudent
+) {
     Spacer(modifier = Modifier.height(10.dp))
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable {onStudenSelected(index)}
-            .background(if (index == selectedIndex) Color(0xFF75EEFF) else Color.White)
+            .clickable {viewModelStudent.setSelectedIndex(index)}
+            .background(if (index == viewModelStudent.selectedIndex.value) Color(0xFF75EEFF) else Color.White)
     ) {
 
-        Text(text = students[index],
+        Text(text = viewModelStudent.students[index],
             fontSize = 22.sp,
             modifier = Modifier.padding(start = 15.dp)
         )
@@ -304,7 +294,7 @@ fun MessageRow(index: Int, students: MutableList<String>, selectedIndex: Int, on
         ) {
             IconButton(
                 modifier = Modifier.padding(end = 10.dp),
-                onClick = { students.removeAt(index) }
+                onClick = { viewModelStudent.removeStudents(index) }
             ) {
                 Icon(
                     imageVector = Icons.Default.DeleteOutline,
@@ -338,11 +328,15 @@ fun GetWindowState(
 
 
 fun main() = application {
+    val fichero = GestorFichero()
+    val fileStudiants = File("students.txt")
+    val viewModel = ViewModelStudent(fichero, fileStudiants)
+    viewModel.IniciarEstados()
     Window(
         onCloseRequest = ::exitApplication,
         resizable = false,
         state = GetWindowState(800.dp, 800.dp)
         ) {
-        MainScreen()
+        MainScreen(viewModel)
     }
 }

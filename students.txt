@@ -1,7 +1,4 @@
-hola
-que
-tal
-se
-ha
-solucionad
-vamooooooo
+funciona
+con
+view
+model?
