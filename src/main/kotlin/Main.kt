@@ -111,9 +111,9 @@ fun StudentList(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
 
-                    NuevosEstuiandtes(viewModelStudent, focusRequester,onValueChange, onAddStudent)
+                    NuevosEstuiandtes(viewModelStudent.newStudent.value, focusRequester,onValueChange, onAddStudent)
 
-                    Boton("Add new student", viewModelStudent, interactionSource, onAddStudent)
+                    Boton("Add new student", interactionSource, onAddStudent) {viewModelStudent.setKeyPressedState(it)}
 
                 }
                 Column(
@@ -125,7 +125,13 @@ fun StudentList(
                         modifier = Modifier.fillMaxWidth(0.5f).fillMaxHeight(0.7f)
                     ) {
 
-                        ListaEstudiantes(viewModelStudent, state)
+                        ListaEstudiantes(
+                            selectedIndex =  viewModelStudent.selectedIndex.value,
+                            students =  viewModelStudent.students,
+                            state = state,
+                            removeStudents =  {viewModelStudent.removeStudents(it)},
+                            setSelectedIndex =  {viewModelStudent.setSelectedIndex(it)}
+                            )
 
                         VerticalScrollbar(
                             modifier = Modifier
@@ -135,12 +141,12 @@ fun StudentList(
                         )
                     }
 
-                    Boton("Clear All", viewModelStudent, interactionSource, onClearAll)
+                    Boton("Clear All", interactionSource, onClearAll) {viewModelStudent.setKeyPressedState(it)}
 
                 }
             }
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxHeight(1f)) {
-                Boton("Save Changes", viewModelStudent, interactionSource, onSaveChange)
+                Boton("Save Changes", interactionSource, onSaveChange) {viewModelStudent.setKeyPressedState(it)}
             }
 
         }
@@ -149,8 +155,11 @@ fun StudentList(
 
 @Composable
 fun ListaEstudiantes(
-    viewModelStudent: IViewModelStudent,
-    state: LazyListState
+    selectedIndex:Int,
+    students:List<String>,
+    state: LazyListState,
+    removeStudents: (Int) -> Unit,
+    setSelectedIndex: (Int) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -159,20 +168,20 @@ fun ListaEstudiantes(
             .background(Color.White)
             .focusable()
             .onFocusChanged { focusState ->
-                if (focusState.isFocused && viewModelStudent.selectedIndex.value >= 0) viewModelStudent.setSelectedIndex((viewModelStudent.selectedIndex.value))
+                if (focusState.isFocused && selectedIndex >= 0) setSelectedIndex(selectedIndex)
             }
             .onKeyEvent { event ->
                 if (event.type == KeyEventType.KeyUp) {
                     when (event.key) {
                         Key.DirectionUp -> {
-                            if (viewModelStudent.selectedIndex.value > 0) {
-                                viewModelStudent.setSelectedIndex((viewModelStudent.selectedIndex.value - 1))
+                            if (selectedIndex > 0) {
+                                setSelectedIndex(selectedIndex - 1)
                                 true
                             } else false
                         }
                         Key.DirectionDown -> {
-                            if (viewModelStudent.selectedIndex.value < viewModelStudent.students.size - 1) {
-                                viewModelStudent.setSelectedIndex((viewModelStudent.selectedIndex.value) + 1)
+                            if (selectedIndex < students.size - 1) {
+                                setSelectedIndex(selectedIndex + 1)
                                 true
                             } else false
                         }
@@ -185,8 +194,8 @@ fun ListaEstudiantes(
         state
     ) {
 
-        items(viewModelStudent.students.size) { index ->
-            MessageRow(index, viewModelStudent)
+        items(students.size) { index ->
+            MessageRow(index,students, selectedIndex, setSelectedIndex, removeStudents)
         }
 
 
@@ -195,13 +204,13 @@ fun ListaEstudiantes(
 
 @Composable
 fun NuevosEstuiandtes(
-    viewModelStudent: IViewModelStudent,
+    newStudent:String,
     focusRequester: FocusRequester,
     onValueChange: (String) -> Unit,
     onButtonClick: () -> Unit
 ) {
     OutlinedTextField(
-        value = viewModelStudent.newStudent.value,
+        value = newStudent,
         onValueChange = onValueChange,
         label = { Text("New student") },
         singleLine = true,
@@ -220,9 +229,9 @@ fun NuevosEstuiandtes(
 @Composable
 fun Boton(
     texto: String,
-    viewModelStudent: IViewModelStudent,
     interactionSource: MutableInteractionSource,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    setKeyPressedState:(Boolean) -> Unit
 ) {
 
     Button(
@@ -235,11 +244,11 @@ fun Boton(
                 ) {
                     when (it.type) {
                         KeyEventType.KeyDown -> {
-                            viewModelStudent.setKeyPressedState(true)
+                            setKeyPressedState(true)
                         }
 
                         KeyEventType.KeyUp -> {
-                            viewModelStudent.setKeyPressedState(false)
+                            setKeyPressedState(false)
                             onClick.invoke()
                         }
                     }
@@ -273,18 +282,21 @@ fun Toast(message: String, onDismiss: () -> Unit) {
 @Composable
 fun MessageRow(
     index: Int,
-    viewModelStudent: IViewModelStudent
+    students: List<String>,
+    selectedIndex:Int,
+    setSelectedIndex: (Int) -> Unit,
+    removeStudents: (Int) -> Unit
 ) {
     Spacer(modifier = Modifier.height(10.dp))
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable {viewModelStudent.setSelectedIndex(index)}
-            .background(if (index == viewModelStudent.selectedIndex.value) Color(0xFF75EEFF) else Color.White)
+            .clickable {setSelectedIndex(index)}
+            .background(if (index == selectedIndex) Color(0xFF75EEFF) else Color.White)
     ) {
 
-        Text(text = viewModelStudent.students[index],
+        Text(text = students[index],
             fontSize = 22.sp,
             modifier = Modifier.padding(start = 15.dp)
         )
@@ -294,7 +306,7 @@ fun MessageRow(
         ) {
             IconButton(
                 modifier = Modifier.padding(end = 10.dp),
-                onClick = { viewModelStudent.removeStudents(index) }
+                onClick = { removeStudents(index) }
             ) {
                 Icon(
                     imageVector = Icons.Default.DeleteOutline,
@@ -331,7 +343,6 @@ fun main() = application {
     val fichero = GestorFichero()
     val fileStudiants = File("students.txt")
     val viewModel = ViewModelStudent(fichero, fileStudiants)
-    viewModel.IniciarEstados()
     Window(
         onCloseRequest = ::exitApplication,
         resizable = false,
