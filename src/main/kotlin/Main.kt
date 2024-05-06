@@ -197,8 +197,6 @@ fun ListaEstudiantes(
         items(students.size) { index ->
             MessageRow(index,students, selectedIndex, setSelectedIndex, removeStudents)
         }
-
-
     }
 }
 
@@ -338,16 +336,94 @@ fun GetWindowState(
     )
 }
 
+@Composable
+fun ElegirTipoViewModel(ventanaElegir:Boolean,onScreen:() -> Unit, onViewDB:(Boolean) -> Unit , exitApplication: ()-> Unit) {
+    var elegido by remember { mutableStateOf(false) }
+    if (ventanaElegir) {
+        Window(onCloseRequest = exitApplication ) {
+            MaterialTheme {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.SpaceEvenly,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Column {
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    onViewDB(false)
+                                    elegido = !elegido
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = if (elegido) Icons.Default.CheckBoxOutlineBlank else Icons.Default.CheckBox,
+                                    contentDescription = null
+                                )
+                            }
+                            Text("Fichero")
+                        }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    onViewDB(true)
+                                    elegido = !elegido
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = if (!elegido) Icons.Default.CheckBoxOutlineBlank else Icons.Default.CheckBox,
+                                    contentDescription = null
+                                )
+                            }
+                            Text("Base de datos")
+                        }
+
+
+                    }
+
+                    Button(
+                        onClick = onScreen,
+                    ) {
+                        Text("Aceptar")
+                    }
+
+                }
+            }
+        }
+    }
+    }
+
+
 
 fun main() = application {
     val fichero = GestorFichero()
     val fileStudiants = File("students.txt")
-    val viewModel = ViewModelStudent(fichero, fileStudiants)
-    Window(
-        onCloseRequest = ::exitApplication,
-        resizable = false,
-        state = GetWindowState(800.dp, 800.dp)
+    var viewBD by remember { mutableStateOf(false) }
+    var screenStudents by remember { mutableStateOf(false) }
+    var ventanaElegir by remember { mutableStateOf(true) }
+
+    ElegirTipoViewModel(ventanaElegir,
+        onScreen = {
+            screenStudents = true
+            ventanaElegir = false },
+        {viewBD = it})
+    { exitApplication() }
+
+    val viewModel = if (viewBD) StudentViewModelDB(fichero, fileStudiants)
+        else ViewModelStudent(fichero, fileStudiants)
+
+    if (screenStudents) {
+        Window(
+            onCloseRequest = ::exitApplication,
+            resizable = false,
+            state = GetWindowState(800.dp, 800.dp)
         ) {
-        MainScreen(viewModel)
+            MainScreen(viewModel)
+        }
     }
+
 }
