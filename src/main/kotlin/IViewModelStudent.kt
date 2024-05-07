@@ -6,7 +6,7 @@ interface IViewModelStudent {
 
     val newStudent: State<String>
 
-    val students: SnapshotStateList<String>
+    val students: List<String>
 
     val keyPressedState:State<Boolean>
 
@@ -19,7 +19,7 @@ interface IViewModelStudent {
     fun clearStundents()
     fun saveChanges()
     fun valueChange(value:String)
-    fun loadStudents(): SnapshotStateList<String>?
+    fun loadStudents()
     fun setSelectedIndex(index: Int)
     fun setKeyPressedState(keyPressed: Boolean)
     fun setShowDialog(show: Boolean)

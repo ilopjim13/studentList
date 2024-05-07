@@ -1,14 +1,17 @@
 import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
-import java.io.File
 
-class StudentViewModelDB(val fichero: IGestorFichero, val fileStudent: File):IViewModelStudent {
+class StudentViewModelDB(val studentRepo: StudentRepo):IViewModelStudent {
 
 
-    override val newStudent: State<String>
-        get() = TODO("Not yet implemented")
-    override val students: SnapshotStateList<String>
-        get() = TODO("Not yet implemented")
+    private val _newStudent = mutableStateOf("")
+    override val newStudent: State<String> = _newStudent
+
+    private val _students = mutableStateListOf("")
+    override val students: List<String> = _students
+
     override val keyPressedState: State<Boolean>
         get() = TODO("Not yet implemented")
     override val showDialog: State<Boolean>
@@ -36,8 +39,13 @@ class StudentViewModelDB(val fichero: IGestorFichero, val fileStudent: File):IVi
         TODO("Not yet implemented")
     }
 
-    override fun loadStudents(): SnapshotStateList<String>? {
-        TODO("Not yet implemented")
+    override fun loadStudents(){
+        val result = studentRepo.getAllStudents()
+        result.onSuccess{
+
+        }.onFailure {
+
+        }
     }
 
     override fun setSelectedIndex(index: Int) {

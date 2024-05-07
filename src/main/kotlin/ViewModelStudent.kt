@@ -8,7 +8,7 @@ class ViewModelStudent(private val fichero: IGestorFichero, private val fileStud
     override val newStudent: State<String> = _newStudent
 
     private val _students: SnapshotStateList<String> = loadStudents()
-    override val students: SnapshotStateList<String> = _students
+    override val students: List<String> = _students
 
     private val _keyPressedState: MutableState<Boolean> = mutableStateOf(false)
     override val keyPressedState: State<Boolean> = _keyPressedState
@@ -21,16 +21,16 @@ class ViewModelStudent(private val fichero: IGestorFichero, private val fileStud
 
 
     override fun addStudents() {
-        if (newStudent.value.isNotBlank()) students.add(newStudent.value)
+        if (newStudent.value.isNotBlank()) _students.add(newStudent.value)
         _newStudent.value = ""
     }
 
     override fun removeStudents(index: Int) {
-        students.removeAt(index)
+        _students.removeAt(index)
     }
 
     override fun clearStundents() {
-        students.clear()
+        _students.clear()
     }
 
     override fun saveChanges() {
