@@ -4,7 +4,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 
-class StudentViewModelDB(private val studentRepo: StudentRepo):IViewModelStudent {
+class StudentViewModelDB(private val studentRepo: IRepo):IViewModelStudent {
 
 
     private val _newStudent = mutableStateOf("")
@@ -60,7 +60,7 @@ class StudentViewModelDB(private val studentRepo: StudentRepo):IViewModelStudent
                 _students.add(it)
             }
         }.onFailure {
-            throw DatabaseTimeoutException("Error")
+            throw DatabaseTimeoutException("${it.message}")
         }
     }
 
@@ -75,5 +75,4 @@ class StudentViewModelDB(private val studentRepo: StudentRepo):IViewModelStudent
     override fun setShowDialog(show: Boolean) {
         _showDialog.value = show
     }
-
 }

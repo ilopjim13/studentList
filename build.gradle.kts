@@ -22,6 +22,7 @@ dependencies {
     implementation(compose.desktop.currentOs)
     implementation(compose.materialIconsExtended)
     implementation("mysql:mysql-connector-java:8.0.28")
+
 }
 
 compose.desktop {

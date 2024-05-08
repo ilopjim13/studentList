@@ -64,14 +64,14 @@ fun MainScreen(viewModelStudent: IViewModelStudent) {
 
         if (viewModelStudent.showDialog.value) {
             Toast("Changes Saved") {
-                viewModelStudent.setShowDialog(true)
+                viewModelStudent.setShowDialog(false)
                 focusRequester.requestFocus()
             }
         }
 
         LaunchedEffect(viewModelStudent.showDialog.value) {
             if (viewModelStudent.showDialog.value) {
-                delay(2000)
+                delay(500)
                 viewModelStudent.setShowDialog(false)
             }
         }
