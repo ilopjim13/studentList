@@ -408,8 +408,8 @@ fun GetWindowState(
 }
 
 @Composable
-fun ElegirTipoViewModel(ventanaElegir:Boolean,onScreen:() -> Unit, onViewDB:(Boolean) -> Unit , exitApplication: ()-> Unit) {
-    var elegido by remember { mutableStateOf(false) }
+fun ElegirTipoViewModel(viewBd:Boolean,ventanaElegir:Boolean,onScreen:() -> Unit, onViewDB:(Boolean) -> Unit , exitApplication: ()-> Unit) {
+
     if (ventanaElegir) {
         Window(onCloseRequest = exitApplication ) {
             MaterialTheme {
@@ -425,11 +425,10 @@ fun ElegirTipoViewModel(ventanaElegir:Boolean,onScreen:() -> Unit, onViewDB:(Boo
                             IconButton(
                                 onClick = {
                                     onViewDB(false)
-                                    elegido = !elegido
                                 }
                             ) {
                                 Icon(
-                                    imageVector = if (elegido) Icons.Default.CheckBoxOutlineBlank else Icons.Default.CheckBox,
+                                    imageVector = if (viewBd) Icons.Default.CheckBoxOutlineBlank else Icons.Default.CheckBox,
                                     contentDescription = null
                                 )
                             }
@@ -442,11 +441,10 @@ fun ElegirTipoViewModel(ventanaElegir:Boolean,onScreen:() -> Unit, onViewDB:(Boo
                             IconButton(
                                 onClick = {
                                     onViewDB(true)
-                                    elegido = !elegido
                                 }
                             ) {
                                 Icon(
-                                    imageVector = if (!elegido) Icons.Default.CheckBoxOutlineBlank else Icons.Default.CheckBox,
+                                    imageVector = if (!viewBd) Icons.Default.CheckBoxOutlineBlank else Icons.Default.CheckBox,
                                     contentDescription = null
                                 )
                             }
@@ -478,15 +476,18 @@ fun main() = application {
     var screenStudents by remember { mutableStateOf(false) }
     var ventanaElegir by remember { mutableStateOf(true) }
 
-    ElegirTipoViewModel(ventanaElegir,
+    ElegirTipoViewModel(
+        viewBD,
+        ventanaElegir,
         onScreen = {
             screenStudents = true
             ventanaElegir = false },
-        {viewBD = it})
+            {viewBD = it}
+    )
     { exitApplication() }
 
     val viewModel = if (viewBD) StudentViewModelDB(studentRepo)
-        else ViewModelStudent(fichero, fileStudiants)
+                    else ViewModelStudent(fichero, fileStudiants)
 
     if (screenStudents) {
         Window(
