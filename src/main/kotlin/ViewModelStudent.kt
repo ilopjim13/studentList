@@ -7,7 +7,8 @@ class ViewModelStudent(private val fichero: IGestorFichero, private val fileStud
     private val _newStudent: MutableState<String> = mutableStateOf("")
     override val newStudent: State<String> = _newStudent
 
-    private val _students: SnapshotStateList<String> = loadStudents()
+
+    private val _students: SnapshotStateList<String> = mutableStateListOf("")
     override val students: List<String> = _students
 
     private val _keyPressedState: MutableState<Boolean> = mutableStateOf(false)
@@ -19,6 +20,9 @@ class ViewModelStudent(private val fichero: IGestorFichero, private val fileStud
     private val _selectedIndex: MutableState<Int> = mutableStateOf(-1)
     override val selectedIndex: State<Int> = _selectedIndex
 
+    init {
+        loadStudents()
+    }
 
     override fun addStudents() {
         if (newStudent.value.isNotBlank()) _students.add(newStudent.value)
@@ -39,14 +43,20 @@ class ViewModelStudent(private val fichero: IGestorFichero, private val fileStud
         setShowDialog(true)
     }
 
+    override fun editName(index: Int, value: String) {
+        _students[index] = value
+    }
+
     override fun valueChange(value:String) {
         _newStudent.value = value
     }
 
-    override fun loadStudents(): SnapshotStateList<String> {
-        val datos = fichero.leer(fileStudiants)?.toMutableStateList()
-        if (datos != null) return datos
-        return mutableStateListOf("")
+    override fun loadStudents() {
+        _students.clear()
+        fichero.leer(fileStudiants)?.toMutableStateList()?.forEach {
+            _students.add(it)
+        }
+
     }
 
     override fun setSelectedIndex(index: Int) {

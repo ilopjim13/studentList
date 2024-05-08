@@ -50,8 +50,6 @@ class StudentRepo :IRepo {
                     stmt.executeUpdate()
                 }
 
-
-
             Result.success(Unit)
         } catch (e: Exception) {
             error = e

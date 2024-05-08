@@ -8,6 +8,7 @@ interface IViewModelStudent {
 
     val students: List<String>
 
+
     val keyPressedState:State<Boolean>
 
     val showDialog:State<Boolean>
@@ -18,6 +19,7 @@ interface IViewModelStudent {
     fun removeStudents(index: Int)
     fun clearStundents()
     fun saveChanges()
+    fun editName(index: Int, value: String)
     fun valueChange(value:String)
     fun loadStudents()
     fun setSelectedIndex(index: Int)

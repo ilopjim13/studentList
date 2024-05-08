@@ -126,6 +126,7 @@ fun StudentList(
                     ) {
 
                         ListaEstudiantes(
+                            viewModelStudent = viewModelStudent,
                             selectedIndex =  viewModelStudent.selectedIndex.value,
                             students =  viewModelStudent.students,
                             state = state,
@@ -155,6 +156,7 @@ fun StudentList(
 
 @Composable
 fun ListaEstudiantes(
+    viewModelStudent: IViewModelStudent,
     selectedIndex:Int,
     students:List<String>,
     state: LazyListState,
@@ -195,7 +197,14 @@ fun ListaEstudiantes(
     ) {
 
         items(students.size) { index ->
-            MessageRow(index,students, selectedIndex, setSelectedIndex, removeStudents)
+            MessageRow(
+                viewModelStudent,
+                index = index,
+                students =  students,
+                selectedIndex =  selectedIndex,
+                setSelectedIndex =  setSelectedIndex,
+                removeStudents =  removeStudents
+            )
         }
     }
 }
@@ -259,6 +268,49 @@ fun Boton(
     }
 }
 
+@Composable
+fun EditName(texto: String, onValueChange: (String) -> Unit, onDismiss: () -> Unit, onSaveEdit: () -> Unit) {
+
+    Dialog(
+        title = "Edit Name",
+        resizable = false,
+        onCloseRequest = onDismiss
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceAround,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            OutlinedTextField(
+                value = texto,
+                onValueChange = onValueChange,
+                label = { Text("Edit student") },
+                singleLine = true,
+                placeholder = { Text("Edit the student...") },
+                modifier = Modifier.onKeyEvent { event ->
+                    if (event.key == Key.Enter) {
+                        onSaveEdit.invoke()
+                        true
+                    } else false
+                }
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Button(
+                    onClick = onSaveEdit
+                ) { Text("Accept") }
+
+                Button(
+                    onClick = onDismiss
+                ) { Text("Cancel") }
+            }
+        }
+    }
+
+
+}
 
 @Composable
 fun Toast(message: String, onDismiss: () -> Unit) {
@@ -277,23 +329,28 @@ fun Toast(message: String, onDismiss: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageRow(
+    viewModelStudent: IViewModelStudent,
     index: Int,
     students: List<String>,
     selectedIndex:Int,
     setSelectedIndex: (Int) -> Unit,
-    removeStudents: (Int) -> Unit
+    removeStudents: (Int) -> Unit,
 ) {
     Spacer(modifier = Modifier.height(10.dp))
+    var edit by remember { mutableStateOf(false) }
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable {setSelectedIndex(index)}
             .background(if (index == selectedIndex) Color(0xFF75EEFF) else Color.White)
+            .combinedClickable(
+                onClick = { setSelectedIndex(index) },
+                onDoubleClick = { edit = true }
+            )
     ) {
-
         Text(text = students[index],
             fontSize = 22.sp,
             modifier = Modifier.padding(start = 15.dp)
@@ -314,7 +371,21 @@ fun MessageRow(
 
         }
 
+        var texto by remember { mutableStateOf(students[index]) }
+
+        if (edit) {
+            EditName(texto,
+                onValueChange = { texto = it },
+                onDismiss = { edit = false },
+                onSaveEdit = {
+                    viewModelStudent.editName(index, texto)
+                    if (students[index].isBlank()) removeStudents(index)
+                    edit = false
+                })
+        }
+
     }
+
 
 }
 
@@ -395,13 +466,14 @@ fun ElegirTipoViewModel(ventanaElegir:Boolean,onScreen:() -> Unit, onViewDB:(Boo
             }
         }
     }
-    }
+}
 
 
 
 fun main() = application {
     val fichero = GestorFichero()
     val fileStudiants = File("students.txt")
+    val studentRepo = StudentRepo()
     var viewBD by remember { mutableStateOf(false) }
     var screenStudents by remember { mutableStateOf(false) }
     var ventanaElegir by remember { mutableStateOf(true) }
@@ -413,7 +485,7 @@ fun main() = application {
         {viewBD = it})
     { exitApplication() }
 
-    val viewModel = if (viewBD) StudentViewModelDB(fichero, fileStudiants)
+    val viewModel = if (viewBD) StudentViewModelDB(studentRepo)
         else ViewModelStudent(fichero, fileStudiants)
 
     if (screenStudents) {

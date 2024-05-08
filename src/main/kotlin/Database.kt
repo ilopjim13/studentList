@@ -3,6 +3,9 @@ import java.sql.DriverManager
 import java.sql.SQLException
 import java.sql.SQLTimeoutException
 
+class DatabaseTimeoutException(val error:String): Exception()
+class SqlErrorException(val error:String): Exception()
+
 object Database {
     private const val URL = "jdbc:mysql://localhost:3306/studentdb"
     private const val USER = "studentuser"

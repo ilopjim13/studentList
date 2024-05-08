@@ -1,9 +1,10 @@
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 
-class StudentViewModelDB(val studentRepo: StudentRepo):IViewModelStudent {
+class StudentViewModelDB(private val studentRepo: StudentRepo):IViewModelStudent {
 
 
     private val _newStudent = mutableStateOf("")
@@ -12,51 +13,67 @@ class StudentViewModelDB(val studentRepo: StudentRepo):IViewModelStudent {
     private val _students = mutableStateListOf("")
     override val students: List<String> = _students
 
-    override val keyPressedState: State<Boolean>
-        get() = TODO("Not yet implemented")
-    override val showDialog: State<Boolean>
-        get() = TODO("Not yet implemented")
-    override val selectedIndex: State<Int>
-        get() = TODO("Not yet implemented")
+    private val _keyPressedState: MutableState<Boolean> = mutableStateOf(false)
+    override val keyPressedState: State<Boolean> = _keyPressedState
+
+    private val _showDialog: MutableState<Boolean> = mutableStateOf(false)
+    override val showDialog: State<Boolean> = _showDialog
+
+    private val _selectedIndex: MutableState<Int> = mutableStateOf(-1)
+    override val selectedIndex: State<Int> = _selectedIndex
+
+    init {
+        loadStudents()
+    }
+
 
     override fun addStudents() {
-        TODO("Not yet implemented")
+        if (newStudent.value.isNotBlank()) _students.add(newStudent.value)
+        _newStudent.value = ""
     }
 
     override fun removeStudents(index: Int) {
-        TODO("Not yet implemented")
+        _students.removeAt(index)
     }
 
     override fun clearStundents() {
-        TODO("Not yet implemented")
+        _students.clear()
     }
 
     override fun saveChanges() {
-        TODO("Not yet implemented")
+        studentRepo.updateStudents(students)
+    }
+
+    override fun editName(index: Int, value: String) {
+        _students[index] = value
     }
 
     override fun valueChange(value: String) {
-        TODO("Not yet implemented")
+        _newStudent.value = value
     }
 
     override fun loadStudents(){
         val result = studentRepo.getAllStudents()
-        result.onSuccess{
-
+        result.onSuccess{ student ->
+            _students.clear()
+            student.forEach {
+                _students.add(it)
+            }
         }.onFailure {
-
+            throw DatabaseTimeoutException("Error")
         }
     }
 
     override fun setSelectedIndex(index: Int) {
-        TODO("Not yet implemented")
+        _selectedIndex.value = index
     }
 
     override fun setKeyPressedState(keyPressed: Boolean) {
-        TODO("Not yet implemented")
+        _keyPressedState.value = keyPressed
     }
 
     override fun setShowDialog(show: Boolean) {
-        TODO("Not yet implemented")
+        _showDialog.value = show
     }
+
 }
