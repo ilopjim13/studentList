@@ -42,6 +42,7 @@ class StudentViewModelDB(private val studentRepo: IRepo):IViewModelStudent {
 
     override fun saveChanges() {
         studentRepo.updateStudents(students)
+        setShowDialog(true)
     }
 
     override fun editName(index: Int, value: String) {

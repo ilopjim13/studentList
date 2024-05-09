@@ -71,7 +71,7 @@ fun MainScreen(viewModelStudent: IViewModelStudent) {
 
         LaunchedEffect(viewModelStudent.showDialog.value) {
             if (viewModelStudent.showDialog.value) {
-                delay(500)
+                delay(2000)
                 viewModelStudent.setShowDialog(false)
             }
         }
@@ -232,7 +232,6 @@ fun NuevosEstuiandtes(
     )
 }
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun Boton(
     texto: String,
@@ -243,7 +242,7 @@ fun Boton(
 
     Button(
         onClick = onClick,
-        modifier = Modifier.onPointerEvent(PointerEventType.Press) { onClick() }
+        modifier = Modifier
             .onPreviewKeyEvent {
                 if (
                     it.key == Key.Enter ||
@@ -408,10 +407,14 @@ fun GetWindowState(
 }
 
 @Composable
-fun ElegirTipoViewModel(viewBd:Boolean,ventanaElegir:Boolean,onScreen:() -> Unit, onViewDB:(Boolean) -> Unit , exitApplication: ()-> Unit) {
+fun ElegirTipoViewModel(state:WindowState, viewBd:Boolean,ventanaElegir:Boolean,onScreen:() -> Unit, onViewDB:(Boolean) -> Unit , exitApplication: ()-> Unit) {
 
     if (ventanaElegir) {
-        Window(onCloseRequest = exitApplication ) {
+        Window(
+            onCloseRequest = exitApplication,
+            resizable = false,
+            state = state
+        ) {
             MaterialTheme {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -432,7 +435,7 @@ fun ElegirTipoViewModel(viewBd:Boolean,ventanaElegir:Boolean,onScreen:() -> Unit
                                     contentDescription = null
                                 )
                             }
-                            Text("Fichero")
+                            Text("File")
                         }
 
                         Row(
@@ -448,7 +451,7 @@ fun ElegirTipoViewModel(viewBd:Boolean,ventanaElegir:Boolean,onScreen:() -> Unit
                                     contentDescription = null
                                 )
                             }
-                            Text("Base de datos")
+                            Text("Data Base")
                         }
 
 
@@ -457,7 +460,7 @@ fun ElegirTipoViewModel(viewBd:Boolean,ventanaElegir:Boolean,onScreen:() -> Unit
                     Button(
                         onClick = onScreen,
                     ) {
-                        Text("Aceptar")
+                        Text("Accept")
                     }
 
                 }
@@ -477,6 +480,7 @@ fun main() = application {
     var ventanaElegir by remember { mutableStateOf(true) }
 
     ElegirTipoViewModel(
+        state = GetWindowState(400.dp, 300.dp),
         viewBD,
         ventanaElegir,
         onScreen = {
